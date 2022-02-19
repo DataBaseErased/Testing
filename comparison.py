@@ -1,5 +1,5 @@
 # Simple pygame program
-
+#!updatte
 # Import and initialize the pygame library
 from random import randint
 import pygame
