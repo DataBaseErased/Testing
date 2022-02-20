@@ -1,58 +1,70 @@
-#center of mass camera. Também gera estrelas
+#Starts the screen at the center of mass. Generates and moves a finite star background
+# A coordenada do centro de massa não é mantida no centro
 import pygame
 import random
 
 vec = pygame.Vector2
 backgroundSize = vec(5000,5000)
+FPS = 60
+drag = False
 
 class camMov():
     def __init__(self,superficie, bodyList,screenCenter):
+        self.is3Pressed = False
         self.bodyList = bodyList
         self.superficie = superficie
         self.screenCenter = screenCenter
+
+        #body parameters
+        vcm = vec(0,0)
+        rcm =  vec(0,0)
+        M = 0
+        for corpo in self.bodyList:
+            vcm += corpo.m * corpo.v
+            rcm+= corpo.m * corpo.r
+            M += corpo.m
+        self.rCM = rcm/M 
+        self.vCM = vcm/M
+
+        #Muda a coordenada inicial dos corpos para a coordenada do centro de massa no centro.
+        for corpo in self.bodyList:
+            corpo.r +=  self.screenCenter - self.rCM
+        self.rCM = self.screenCenter
+
+        #stars parameters
         self.NStars = 6000
         self.W = []
         self.H = []
+        self.R = []        
+        #star colors
+        self.possibleColors = [(255, 205, 165), (255, 130, 32), (255, 80, 0),(255, 242, 32), (255, 255, 153),(16, 154, 214),(45,93,131)]
+        self.ColorPallete = []
         
-        self.R = []
+        #fill the star parameters according to their size. Smaller are more common. Could add greater variation
         for i in range(self.NStars):
-            
+            if(i < 1/2 * self.NStars):
+                self.R.append(1)
+               
+            elif(i <3/4*self.NStars):
+                self.R.append(2)
+            else:
+                self.R.append(random.randint(3,4))
+            self.ColorPallete.append(self.possibleColors[random.randint(0, len(self.possibleColors) -1)])
             self.W.append(random.randint(-backgroundSize.x/2,backgroundSize.x/2))
             self.H.append(random.randint(-backgroundSize.y/2, backgroundSize.y/2))
-            self.R.append(random.randint(0,4))
-
-#calcula o centro de massa e transforma corpo.v em coordenadas pygame em corpo.v em coordenadas do CM
-    def defineCM(self):
-        vcm = vec(0,0)
-        rcm= vec(0,0)
-        M = 0
-        for i in self.bodyList:
-            vcm += i.m * i.v
-            rcm+= i.m * i.r
-            M += i.m
-        
-        #posicao relativa ao CM, no centro
-        cameraCenter = rcm/M - self.screenCenter
-        for i in self.bodyList:
-            i.r -= cameraCenter
-            i.traj.append(i.r)
-            i.v -= vcm/M
-            
-        #desenha o centro de massa
-        pygame.draw.circle(self.superficie,(255,255,255),rcm/M,10)
-        
-       
-        return([rcm/M, vcm/M])
 
 
-#atualiza as posicoes guardadas na lista para cada estrela.
+    #atualiza as posicoes guardadas na lista para cada estrela. Acrescentar fator de paralaxe
     def moveStars(self):
-        vCM = self.defineCM()[1]
-        #print(self.CM()[0])
-        #print(vCM)
         for i in range(self.NStars):
             
-            self.W[i] -= vCM.x
-            self.H[i] -= vCM.y
-            pygame.draw.circle(self.superficie, (255,255,255), (self.W[i], self.H[i]), self.R[i])
-       #
+            self.W[i] -= self.vCM.x/FPS
+            self.H[i] -= self.vCM.y/FPS
+            pygame.draw.circle(self.superficie, self.ColorPallete[i], (self.W[i], self.H[i]), self.R[i])
+    
+    #shows CM as a red point. Maybe it's beneath your star
+    def showCM(self):
+        pygame.draw.circle(self.superficie,(255,0,0),self.rCM,3)
+        self.rCM += self.vCM/FPS
+
+            
